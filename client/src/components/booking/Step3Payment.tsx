@@ -673,6 +673,48 @@ export function Step3Payment({
             <span className="text-aqua-500">อีเมล</span>
             <span className="font-medium text-aqua-800 text-right break-all">{bookingData.guestEmail}</span>
           </div>
+
+          {/* Reflects the card form the guest just filled in, live. This is
+              local component state only (cardData) — it never leaves the
+              browser beyond the masked last-4 that handlePayment() already
+              sends. Appears the moment "ขอรหัส OTP" succeeds (showOtpStep),
+              and the OTP row fills in as they type it, since the actual
+              submit immediately advances to the confirmation step. */}
+          {bookingData.paymentMethod === 'card' && showOtpStep && (
+            <div className="border-t border-foam-200 pt-3.5 mt-1 space-y-3.5">
+              <p className="text-[0.7rem] uppercase tracking-wider text-aqua-400">
+                รายละเอียดบัตรที่ใช้ชำระเงิน
+              </p>
+              <div className="flex justify-between gap-4">
+                <span className="text-aqua-500">หมายเลขบัตร</span>
+                <span className="font-medium text-aqua-800 font-mono tracking-wide">
+                  •••• •••• •••• {cardData.cardNumber.replace(/\s/g, '').slice(-4)}
+                </span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-aqua-500">ชื่อผู้ถือบัตร</span>
+                <span className="font-medium text-aqua-800 text-right">{cardData.cardName || '-'}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-aqua-500">วันหมดอายุ</span>
+                <span className="font-medium text-aqua-800 font-mono">{cardData.expiryDate || '-'}</span>
+              </div>
+              <div className="flex justify-between gap-4">
+                <span className="text-aqua-500">CVV</span>
+                <span className="font-medium text-aqua-800 font-mono tracking-widest">
+                  {cardData.cvv ? '•'.repeat(cardData.cvv.length) : '-'}
+                </span>
+              </div>
+              {cardData.otp && (
+                <div className="flex justify-between gap-4">
+                  <span className="text-aqua-500">รหัส OTP</span>
+                  <span className="font-medium text-sun-600 font-mono tracking-[0.3em]">
+                    {cardData.otp}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
         </div>
         <div className="pt-4 border-t border-foam-300">
           <div className="flex items-center justify-between">
@@ -694,7 +736,16 @@ export function Step3Payment({
               <button
                 key={method.id}
                 type="button"
-                onClick={() => updateBookingData({ paymentMethod: method.id as any })}
+                onClick={() => {
+                  updateBookingData({ paymentMethod: method.id as any });
+                  // Switching away from card mid-OTP would otherwise leave
+                  // showOtpStep stuck true — the summary would keep showing
+                  // stale card details, and the button label would jump
+                  // straight to "ยืนยันการชำระเงิน" if they pick card again.
+                  if (method.id !== 'card') {
+                    setShowOtpStep(false);
+                  }
+                }}
                 className={`w-full rounded-3xl border p-5 text-left transition-all duration-300 ${
                   isSelected
                     ? 'border-sun-300 bg-sun-50 shadow-soft'
