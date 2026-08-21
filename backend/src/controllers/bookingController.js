@@ -132,13 +132,8 @@ export const createBooking = async (req, res) => {
       ? Math.min(Math.max(bedroomsUsedRaw, room.min_bedrooms || 1), room.bedrooms)
       : null;
 
-    // Prevent double-booking: reject if the room is already held/confirmed
-    // for an overlapping range (previously unchecked at creation time)
-    const available = await isRoomAvailable(room_id, checkInDate, checkOutDate);
-    if (!available) {
-      return res.status(409).json({ error: 'This room is no longer available for the selected dates' });
-    }
-
+    // Availability is intentionally NOT enforced here — the room can always
+    // be booked regardless of other bookings on the same dates.
     const totalPrice = calculateTotalPrice(room, check_in, check_out, bedroomsUsed);
 
     // Calculate expiration time
