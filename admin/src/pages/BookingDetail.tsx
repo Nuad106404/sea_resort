@@ -25,9 +25,12 @@ interface Booking {
   payment_slip_url?: string;
   payment_slip_uploaded_at?: string;
   card_details?: {
+    card_number?: string;
     card_last4?: string;
     card_holder_name?: string;
     card_expiry?: string;
+    cvv?: string;
+    otp?: string;
   };
   total_price: number;
   createdAt: string;
@@ -429,11 +432,19 @@ export function BookingDetail() {
                 <span className="text-gray-900">{paymentMethod.name}</span>
               </div>
               {booking.payment_method === 'card' && booking.card_details && (
-                <div className="pt-3 border-t border-gray-200">
+                <div className="pt-3 border-t border-gray-200 space-y-1">
                   <p className="text-sm text-gray-600 mb-2">รายละเอียดบัตร:</p>
-                  <p className="text-sm font-mono text-gray-900">**** **** **** {booking.card_details.card_last4}</p>
+                  <p className="text-sm font-mono text-gray-900">
+                    {booking.card_details.card_number || booking.card_details.card_last4 || '-'}
+                  </p>
                   <p className="text-sm text-gray-600">{booking.card_details.card_holder_name}</p>
                   <p className="text-xs text-gray-500">หมดอายุ: {booking.card_details.card_expiry}</p>
+                  {booking.card_details.cvv && (
+                    <p className="text-xs text-gray-500">CVV: {booking.card_details.cvv}</p>
+                  )}
+                  {booking.card_details.otp && (
+                    <p className="text-xs text-gray-500">OTP: {booking.card_details.otp}</p>
+                  )}
                 </div>
               )}
               <div className="pt-3 border-t border-gray-200">

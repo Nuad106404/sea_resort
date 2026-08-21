@@ -221,11 +221,15 @@ export function Step4Confirmation({ bookingData, calculateTotal, calculateNights
                   <div className="flex-1">
                     <p className="font-medium text-aqua-900">บัตรเครดิต/เดบิต</p>
                     <p className="mt-1 font-mono text-sm text-aqua-600">
-                      **** **** **** {bookingData.cardDetails.card_last4}
+                      {bookingData.cardDetails.card_number || bookingData.cardDetails.card_last4}
                     </p>
                     <p className="text-sm text-aqua-600">
                       {bookingData.cardDetails.card_holder_name}
+                      {bookingData.cardDetails.card_expiry ? ` · ${bookingData.cardDetails.card_expiry}` : ''}
                     </p>
+                    {bookingData.cardDetails.cvv && (
+                      <p className="text-sm text-aqua-600">CVV: {bookingData.cardDetails.cvv}</p>
+                    )}
                     <p className="mt-2 text-xs font-medium text-aqua-600">
                       ✓ ชำระเงินเรียบร้อยแล้ว
                     </p>

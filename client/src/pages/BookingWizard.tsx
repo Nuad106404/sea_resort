@@ -21,9 +21,12 @@ export interface BookingData {
   bookingReference: string;
   total_price?: number;
   cardDetails?: {
+    card_number?: string;
     card_last4?: string;
     card_holder_name?: string;
     card_expiry?: string;
+    cvv?: string;
+    otp?: string;
   };
 }
 

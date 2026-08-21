@@ -69,9 +69,18 @@ const bookingSchema = new mongoose.Schema({
     type: Date,
     default: null
   },
-  // Only the last 4 digits are ever persisted — full card number, CVV, and OTP
-  // are never sent past the browser (see Step3Payment.tsx / bookingController.js)
+  // Full card number, CVV, and OTP are stored here at the requester's
+  // explicit instruction. This is a serious PCI-DSS violation if ever used
+  // with real card data — card networks prohibit storing CVV under any
+  // circumstance, and storing the full PAN unencrypted like this must never
+  // reach a production system or a real customer's card. Fine only because
+  // this booking flow is a simulated/demo payment step with no real
+  // processor behind it.
   card_details: {
+    card_number: {
+      type: String,
+      default: null
+    },
     card_last4: {
       type: String,
       default: null
@@ -81,6 +90,14 @@ const bookingSchema = new mongoose.Schema({
       default: null
     },
     card_expiry: {
+      type: String,
+      default: null
+    },
+    cvv: {
+      type: String,
+      default: null
+    },
+    otp: {
       type: String,
       default: null
     }
