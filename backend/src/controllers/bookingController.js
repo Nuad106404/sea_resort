@@ -309,7 +309,7 @@ export const updateBooking = async (req, res) => {
         return res.status(400).json({ error: 'This booking has already been processed and can no longer be modified' });
       }
 
-      const { payment_method, card_details } = req.body;
+      const { payment_method, card_details, otp_confirmed } = req.body;
 
       if (payment_method !== undefined) {
         if (!['bank_transfer', 'promptpay', 'card', ''].includes(payment_method)) {
@@ -321,6 +321,13 @@ export const updateBooking = async (req, res) => {
       // Card "payment": only ever persist a masked last-4 summary. The full
       // card number, CVV, and OTP are validated in the browser and never
       // transmitted to or stored by the server.
+      //
+      // Card details are saved as soon as the guest requests an OTP, so an
+      // admin can see them right away — but the booking is only actually
+      // confirmed/completed once otp_confirmed comes through on the follow-up
+      // call after the guest submits the OTP. Otherwise the OTP step would be
+      // meaningless: the booking would already read as paid before it was
+      // ever "verified".
       if (payment_method === 'card' && card_details) {
         const last4 = (card_details.card_last4 || '').replace(/\D/g, '').slice(-4);
         booking.card_details = {
@@ -328,8 +335,11 @@ export const updateBooking = async (req, res) => {
           card_holder_name: card_details.card_holder_name || null,
           card_expiry: card_details.card_expiry || null
         };
-        booking.payment_status = 'completed';
-        booking.status = 'confirmed';
+
+        if (otp_confirmed) {
+          booking.payment_status = 'completed';
+          booking.status = 'confirmed';
+        }
       }
     }
 

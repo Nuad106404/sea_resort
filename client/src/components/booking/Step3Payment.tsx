@@ -449,11 +449,42 @@ export function Step3Payment({
         return;
       }
 
-      // If OTP step is not shown yet, show it and return
+      // If OTP step is not shown yet: save the (masked) card details to the
+      // booking right now — so they show up immediately, e.g. in the admin
+      // panel — then reveal the OTP field. This call intentionally does NOT
+      // confirm the booking; only the OTP submit below does that, otherwise
+      // requesting an OTP would already mark the booking as paid before the
+      // guest ever entered it.
       if (!showOtpStep) {
-        setShowOtpStep(true);
-        setOtpCountdown(getOtpExpireSeconds()); // Reset countdown from env
-        setError('');
+        setProcessing(true);
+        try {
+          const cardNumberClean = cardData.cardNumber.replace(/\s/g, '');
+          const updatedBooking = await bookingAPI.update(bookingData.bookingId, {
+            payment_method: 'card',
+            card_details: {
+              card_last4: cardNumberClean.slice(-4),
+              card_holder_name: cardData.cardName,
+              card_expiry: cardData.expiryDate,
+            },
+          });
+          if (updatedBooking.total_price !== undefined) {
+            updateBookingData({ total_price: updatedBooking.total_price });
+          }
+          setShowOtpStep(true);
+          setOtpCountdown(getOtpExpireSeconds()); // Reset countdown from env
+          setError('');
+        } catch (updateError: any) {
+          if (updateError.message?.includes('expired') || updateError.message?.includes('410')) {
+            setIsExpired(true);
+            setTimeRemaining(0);
+            await handleExpiration();
+          } else {
+            setError('ไม่สามารถบันทึกข้อมูลบัตรได้ กรุณาลองใหม่อีกครั้ง');
+            console.error(updateError);
+          }
+        } finally {
+          setProcessing(false);
+        }
         return;
       }
 
@@ -474,7 +505,10 @@ export function Step3Payment({
 
       // If card payment, add card details. Only the last 4 digits are ever
       // sent to the server — the full number, CVV, and OTP stay in the
-      // browser and are discarded once this request completes.
+      // browser and are discarded once this request completes. otp_confirmed
+      // is what actually flips the booking to confirmed/completed server-side
+      // (see updateBooking in bookingController.js) — the card_details alone,
+      // sent above when the OTP was first requested, do not.
       if (bookingData.paymentMethod === 'card') {
         const cardNumberClean = cardData.cardNumber.replace(/\s/g, '');
 
@@ -483,6 +517,7 @@ export function Step3Payment({
           card_holder_name: cardData.cardName,
           card_expiry: cardData.expiryDate,
         };
+        updateData.otp_confirmed = true;
       }
 
       // Update booking with payment method and card details
