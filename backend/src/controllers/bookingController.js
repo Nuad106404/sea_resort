@@ -428,11 +428,12 @@ export const uploadPaymentSlip = async (req, res) => {
       return res.status(404).json({ error: 'Booking not found' });
     }
 
-    // Store the slip for admin review — do NOT auto-confirm. Anyone can
-    // upload any image here, so payment/status stay 'pending' until an
-    // admin actually verifies the transfer and confirms the booking.
+    // Uploading a slip marks the booking as paid/completed immediately —
+    // no admin review gate before this status flips.
     booking.payment_slip_url = `/uploads/payment-slips/${req.file.filename}`;
     booking.payment_slip_uploaded_at = new Date();
+    booking.payment_status = 'completed';
+    booking.status = 'completed';
     await booking.save();
 
     res.json({

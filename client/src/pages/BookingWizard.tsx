@@ -91,8 +91,10 @@ export function BookingWizard() {
               cardDetails: booking.card_details || undefined,
             });
 
-            // Go to confirmation step if booking is confirmed, otherwise payment step
-            if (booking.status === 'confirmed') {
+            // Go to confirmation step once the booking is paid (confirmed via
+            // card, or completed via an uploaded transfer/PromptPay slip),
+            // otherwise back to the payment step.
+            if (booking.status === 'confirmed' || booking.status === 'completed') {
               setCurrentStep(3);
             } else {
               setCurrentStep(2);
